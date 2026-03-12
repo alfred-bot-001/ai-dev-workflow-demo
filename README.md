@@ -32,9 +32,13 @@ python backend/app.py
 
 然后访问 http://localhost:8080
 
+## 在线演示
+
+🚀 **访问地址**: https://alfred-bot-001.github.io/ai-dev-workflow-demo/
+
 ## GitHub Pages 部署
 
-将 `static/index.html` 上传到 GitHub 仓库的 `docs/` 目录或 `gh-pages` 分支即可。
+已自动配置 GitHub Pages，每次推送到 `main` 分支会自动更新线上版本。
 
 ## 技术栈
 
