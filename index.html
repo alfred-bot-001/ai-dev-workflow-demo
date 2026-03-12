@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Bot 开发流程 Demo</title>
+    <title>AI Bot 开发流程 Demo - 多任务并行版</title>
     <style>
         * {
             margin: 0;
@@ -14,59 +14,92 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC', 'Microsoft YaHei', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            min-height: 100vh;
             padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
         }
 
         .demo-container {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 20px;
-            max-width: 1400px;
-            width: 100%;
-            height: 90vh;
+            max-width: 1600px;
+            margin: 0 auto;
         }
 
-        .phone-mockup {
-            flex: 0 0 380px;
-            background: #000;
-            border-radius: 40px;
-            padding: 12px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .phone-screen {
-            background: #fff;
-            border-radius: 30px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .phone-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+        .user-panel {
+            background: white;
+            border-radius: 20px;
             padding: 20px;
-            text-align: center;
-            font-weight: 600;
-            font-size: 18px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            height: 600px;
         }
 
-        .chat-area {
+        .user-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .avatar-dev { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .avatar-test { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .avatar-deploy { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+
+        .user-info h3 {
+            font-size: 18px;
+            color: #333;
+        }
+
+        .user-info p {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .task-list {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
-            background: #f5f5f5;
+            margin-bottom: 12px;
         }
 
-        .message {
-            margin-bottom: 16px;
-            display: flex;
+        .task-item {
+            background: #f9f9f9;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border-left: 4px solid #ddd;
+            transition: all 0.3s;
             animation: slideIn 0.3s ease-out;
         }
 
@@ -81,225 +114,38 @@
             }
         }
 
-        .message.user {
-            justify-content: flex-end;
-        }
+        .task-item.pending { border-left-color: #ffc107; }
+        .task-item.inprogress { border-left-color: #2196f3; background: #e3f2fd; }
+        .task-item.completed { border-left-color: #4caf50; background: #e8f5e9; }
 
-        .message.bot {
-            justify-content: flex-start;
-        }
-
-        .message-bubble {
-            max-width: 75%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            word-wrap: break-word;
-        }
-
-        .message.user .message-bubble {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .message.bot .message-bubble {
-            background: white;
+        .task-title {
+            font-weight: 600;
             color: #333;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .message.system .message-bubble {
-            background: #fff3cd;
-            color: #856404;
-            border-left: 4px solid #ffc107;
-        }
-
-        .task-card {
-            background: white;
-            border-radius: 12px;
-            padding: 12px;
-            margin: 8px 0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .task-card h4 {
-            color: #667eea;
             margin-bottom: 6px;
             font-size: 14px;
         }
 
-        .task-card p {
+        .task-desc {
             font-size: 12px;
             color: #666;
-            margin: 4px 0;
+            margin-bottom: 8px;
         }
 
         .task-status {
             display: inline-block;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            margin-top: 6px;
-        }
-
-        .status-pending {
-            background: #ffeaa7;
-            color: #d63031;
-        }
-
-        .status-inprogress {
-            background: #74b9ff;
-            color: #0984e3;
-        }
-
-        .status-completed {
-            background: #55efc4;
-            color: #00b894;
-        }
-
-        .link-button {
-            display: inline-block;
-            background: #667eea;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-size: 12px;
-            margin-top: 8px;
-        }
-
-        .typing-indicator {
-            display: flex;
-            gap: 4px;
-            padding: 12px;
-        }
-
-        .typing-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #999;
-            animation: typing 1.4s infinite;
-        }
-
-        .typing-dot:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-
-        .typing-dot:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-
-        @keyframes typing {
-            0%, 60%, 100% {
-                transform: translateY(0);
-            }
-            30% {
-                transform: translateY(-10px);
-            }
-        }
-
-        .input-area {
-            padding: 12px;
-            background: white;
-            border-top: 1px solid #eee;
-            display: flex;
-            gap: 8px;
-        }
-
-        .input-area input {
-            flex: 1;
-            padding: 10px 16px;
-            border: 1px solid #ddd;
-            border-radius: 20px;
-            outline: none;
-            font-size: 14px;
-        }
-
-        .input-area button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 20px;
-            padding: 10px 20px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .workflow-panel {
-            flex: 1;
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-            overflow-y: auto;
-        }
-
-        .workflow-panel h2 {
-            color: #667eea;
-            margin-bottom: 20px;
-        }
-
-        .workflow-step {
-            padding: 16px;
-            margin-bottom: 16px;
-            border-radius: 12px;
-            border-left: 4px solid #ddd;
-            background: #f9f9f9;
-            transition: all 0.3s;
-        }
-
-        .workflow-step.active {
-            border-left-color: #667eea;
-            background: #f0f4ff;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
-        }
-
-        .workflow-step.completed {
-            border-left-color: #00b894;
-            background: #f1f9f7;
-        }
-
-        .workflow-step h3 {
-            font-size: 16px;
-            margin-bottom: 8px;
-            color: #333;
-        }
-
-        .workflow-step p {
-            font-size: 13px;
-            color: #666;
-            margin-bottom: 6px;
-        }
-
-        .step-badge {
-            display: inline-block;
-            padding: 4px 12px;
+            padding: 4px 10px;
             border-radius: 12px;
             font-size: 11px;
             font-weight: 600;
-            margin-top: 8px;
         }
 
-        .badge-waiting {
-            background: #e0e0e0;
-            color: #757575;
-        }
-
-        .badge-active {
-            background: #667eea;
-            color: white;
-        }
-
-        .badge-completed {
-            background: #00b894;
-            color: white;
-        }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-inprogress { background: #cce5ff; color: #004085; }
+        .status-completed { background: #d4edda; color: #155724; }
 
         .controls {
-            margin-bottom: 20px;
             display: flex;
-            gap: 10px;
+            gap: 8px;
         }
 
         .controls button {
@@ -309,7 +155,7 @@
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .btn-start {
@@ -323,14 +169,19 @@
         }
 
         .timeline {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 2px solid #eee;
+            margin-top: 20px;
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-height: 400px;
+            overflow-y: auto;
         }
 
         .timeline h3 {
             color: #667eea;
             margin-bottom: 16px;
+            font-size: 18px;
         }
 
         .timeline-item {
@@ -338,351 +189,367 @@
             gap: 12px;
             margin-bottom: 12px;
             font-size: 13px;
+            animation: slideIn 0.3s ease-out;
         }
 
         .timeline-time {
             color: #999;
             min-width: 60px;
+            font-weight: 600;
         }
 
         .timeline-event {
             color: #333;
         }
+
+        .timeline-role {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-right: 6px;
+        }
+
+        .role-dev { background: #e8eaf6; color: #667eea; }
+        .role-bot { background: #f3e5f5; color: #ab47bc; }
+        .role-test { background: #fce4ec; color: #e91e63; }
+        .role-deploy { background: #e0f7fa; color: #00acc1; }
     </style>
 </head>
 <body>
+    <div class="header">
+        <h1>🤖 AI Bot 驱动的多任务并行开发流程</h1>
+        <p>演示：开发者A、测试工程师B、发布人员C 的协同工作</p>
+    </div>
+
     <div class="demo-container">
-        <!-- 手机模拟器 -->
-        <div class="phone-mockup">
-            <div class="phone-screen">
-                <div class="phone-header">
-                    🤖 AI Dev Assistant
+        <!-- 开发者A面板 -->
+        <div class="user-panel">
+            <div class="user-header">
+                <div class="user-avatar avatar-dev">A</div>
+                <div class="user-info">
+                    <h3>开发者 小A</h3>
+                    <p>负责编码和技术规范</p>
                 </div>
-                <div class="chat-area" id="chatArea">
-                    <!-- 消息将动态添加 -->
-                </div>
-                <div class="input-area">
-                    <input type="text" id="userInput" placeholder="输入消息..." disabled>
-                    <button onclick="sendMessage()" disabled>发送</button>
-                </div>
+            </div>
+            <div class="task-list" id="devTasks">
+                <!-- 任务将动态添加 -->
             </div>
         </div>
 
-        <!-- 工作流面板 -->
-        <div class="workflow-panel">
-            <h2>🚀 AI 驱动的开发流程</h2>
-            
-            <div class="controls">
-                <button class="btn-start" onclick="startDemo()">开始演示</button>
-                <button class="btn-reset" onclick="resetDemo()">重置</button>
-            </div>
-
-            <div id="workflowSteps">
-                <div class="workflow-step" data-step="0">
-                    <h3>步骤 1: 任务分配</h3>
-                    <p>👤 角色: 开发者</p>
-                    <p>Bot 展示今日 JIRA 任务，询问是否开始</p>
-                    <span class="step-badge badge-waiting">等待中</span>
-                </div>
-
-                <div class="workflow-step" data-step="1">
-                    <h3>步骤 2: 技术规范</h3>
-                    <p>👤 角色: 开发者</p>
-                    <p>用户选择任务，Bot 拉取代码分支并生成 Spec 文档</p>
-                    <span class="step-badge badge-waiting">等待中</span>
-                </div>
-
-                <div class="workflow-step" data-step="2">
-                    <h3>步骤 3: Spec Review</h3>
-                    <p>👤 角色: 开发者</p>
-                    <p>Bot 发送 GitHub 链接，开发者审核技术规范</p>
-                    <span class="step-badge badge-waiting">等待中</span>
-                </div>
-
-                <div class="workflow-step" data-step="3">
-                    <h3>步骤 4: 并行开发</h3>
-                    <p>👤 角色: 开发者 + Bot</p>
-                    <p>Bot 开始编码，用户可同时启动其他任务</p>
-                    <span class="step-badge badge-waiting">等待中</span>
-                </div>
-
-                <div class="workflow-step" data-step="4">
-                    <h3>步骤 5: 代码审查</h3>
-                    <p>👤 角色: Bot → 开发者</p>
-                    <p>Bot 完成开发并自动 Code Review，发送链接给开发者</p>
-                    <span class="step-badge badge-waiting">等待中</span>
-                </div>
-
-                <div class="workflow-step" data-step="5">
-                    <h3>步骤 6: 部署测试环境</h3>
-                    <p>👤 角色: Bot</p>
-                    <p>Bot 自动创建测试环境并通知测试人员</p>
-                    <span class="step-badge badge-waiting">等待中</span>
-                </div>
-
-                <div class="workflow-step" data-step="6">
-                    <h3>步骤 7: 测试执行</h3>
-                    <p>👤 角色: 测试人员 B + Bot</p>
-                    <p>测试人员审核测试用例，Bot 执行自动化测试</p>
-                    <span class="step-badge badge-waiting">等待中</span>
-                </div>
-
-                <div class="workflow-step" data-step="7">
-                    <h3>步骤 8: 生产发布</h3>
-                    <p>👤 角色: 发布人员 C</p>
-                    <p>Bot 通知发布人员，完成生产环境部署</p>
-                    <span class="step-badge badge-waiting">等待中</span>
+        <!-- 测试工程师B面板 -->
+        <div class="user-panel">
+            <div class="user-header">
+                <div class="user-avatar avatar-test">B</div>
+                <div class="user-info">
+                    <h3>测试工程师 小B</h3>
+                    <p>负责测试用例和质量保证</p>
                 </div>
             </div>
+            <div class="task-list" id="testTasks">
+                <!-- 任务将动态添加 -->
+            </div>
+        </div>
 
-            <div class="timeline">
-                <h3>📋 时间线</h3>
-                <div id="timeline"></div>
+        <!-- 发布人员C面板 -->
+        <div class="user-panel">
+            <div class="user-header">
+                <div class="user-avatar avatar-deploy">C</div>
+                <div class="user-info">
+                    <h3>发布人员 小C</h3>
+                    <p>负责生产环境部署</p>
+                </div>
+            </div>
+            <div class="task-list" id="deployTasks">
+                <!-- 任务将动态添加 -->
             </div>
         </div>
     </div>
 
+    <div class="controls" style="max-width: 1600px; margin: 20px auto;">
+        <button class="btn-start" onclick="startDemo()">开始演示</button>
+        <button class="btn-reset" onclick="resetDemo()">重置</button>
+    </div>
+
+    <div class="timeline" style="max-width: 1600px; margin: 0 auto;">
+        <h3>📋 时间线（多任务并行）</h3>
+        <div id="timeline"></div>
+    </div>
+
     <script>
-        let currentStep = 0;
         let demoRunning = false;
-        let currentUser = 'developer';
 
-        const tasks = [
-            { id: 'JIRA-1234', title: '用户登录优化', priority: '高', estimate: '3h' },
-            { id: 'JIRA-1235', title: '支付接口对接', priority: '中', estimate: '5h' },
-            { id: 'JIRA-1236', title: 'Dashboard 性能优化', priority: '低', estimate: '2h' }
-        ];
-
-        function addMessage(content, type = 'bot', delay = 0) {
-            setTimeout(() => {
-                const chatArea = document.getElementById('chatArea');
-                const message = document.createElement('div');
-                message.className = `message ${type}`;
-                message.innerHTML = `<div class="message-bubble">${content}</div>`;
-                chatArea.appendChild(message);
-                chatArea.scrollTop = chatArea.scrollHeight;
-            }, delay);
+        function addTask(panel, content, status = 'pending') {
+            const container = document.getElementById(panel + 'Tasks');
+            const task = document.createElement('div');
+            task.className = `task-item ${status}`;
+            task.innerHTML = content;
+            container.appendChild(task);
         }
 
-        function showTyping() {
-            const chatArea = document.getElementById('chatArea');
-            const typing = document.createElement('div');
-            typing.className = 'message bot';
-            typing.id = 'typing-indicator';
-            typing.innerHTML = `
-                <div class="message-bubble typing-indicator">
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                </div>
-            `;
-            chatArea.appendChild(typing);
-            chatArea.scrollTop = chatArea.scrollHeight;
+        function updateTask(panel, index, content, status) {
+            const container = document.getElementById(panel + 'Tasks');
+            const tasks = container.children;
+            if (tasks[index]) {
+                tasks[index].className = `task-item ${status}`;
+                tasks[index].innerHTML = content;
+            }
         }
 
-        function hideTyping() {
-            const typing = document.getElementById('typing-indicator');
-            if (typing) typing.remove();
-        }
-
-        function updateWorkflowStep(step, status) {
-            const steps = document.querySelectorAll('.workflow-step');
-            steps.forEach((el, idx) => {
-                const badge = el.querySelector('.step-badge');
-                if (idx < step) {
-                    el.classList.remove('active');
-                    el.classList.add('completed');
-                    badge.className = 'step-badge badge-completed';
-                    badge.textContent = '已完成';
-                } else if (idx === step) {
-                    el.classList.add('active');
-                    el.classList.remove('completed');
-                    badge.className = 'step-badge badge-active';
-                    badge.textContent = '进行中';
-                } else {
-                    el.classList.remove('active', 'completed');
-                    badge.className = 'step-badge badge-waiting';
-                    badge.textContent = '等待中';
-                }
-            });
-        }
-
-        function addTimeline(event) {
+        function addTimeline(role, event) {
             const timeline = document.getElementById('timeline');
-            const now = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+            const now = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             const item = document.createElement('div');
             item.className = 'timeline-item';
             item.innerHTML = `
                 <span class="timeline-time">${now}</span>
-                <span class="timeline-event">${event}</span>
+                <span class="timeline-event">
+                    <span class="timeline-role role-${role}">${role === 'dev' ? '开发者A' : role === 'bot' ? 'Bot' : role === 'test' ? '测试B' : '发布C'}</span>
+                    ${event}
+                </span>
             `;
             timeline.appendChild(item);
-        }
-
-        async function runWorkflow() {
-            // Step 1: 显示任务列表
-            currentStep = 0;
-            updateWorkflowStep(0, 'active');
-            addTimeline('开始工作流');
-            
-            await sleep(1000);
-            showTyping();
-            await sleep(2000);
-            hideTyping();
-            
-            let taskListHTML = '早上好！今天有 3 个待办任务：<br><br>';
-            tasks.forEach(task => {
-                taskListHTML += `
-                    <div class="task-card">
-                        <h4>${task.id}: ${task.title}</h4>
-                        <p>优先级: ${task.priority} | 预估: ${task.estimate}</p>
-                        <span class="task-status status-pending">待开始</span>
-                    </div>
-                `;
-            });
-            taskListHTML += '<br>要开始开发 JIRA-1234 吗？';
-            addMessage(taskListHTML);
-            addTimeline('展示今日任务列表');
-
-            await sleep(2000);
-            addMessage('开始做技术规范文档', 'user');
-            addTimeline('用户: 开始做技术规范文档');
-
-            // Step 2: 生成规范文档
-            currentStep = 1;
-            updateWorkflowStep(1, 'active');
-            await sleep(1500);
-            showTyping();
-            await sleep(2500);
-            hideTyping();
-            addMessage('✅ 已拉取代码分支: feature/JIRA-1234-login-optimization<br>正在生成技术规范文档...');
-            addTimeline('Bot: 拉取代码分支');
-
-            await sleep(3000);
-            showTyping();
-            await sleep(2000);
-            hideTyping();
-            addMessage(`
-                📄 技术规范文档已生成！<br><br>
-                <strong>主要内容:</strong><br>
-                • 前端: React hooks 重构登录流程<br>
-                • 后端: JWT token 过期时间优化<br>
-                • 数据库: 添加 login_attempts 字段<br><br>
-                <a href="#" class="link-button" onclick="return false;">📎 查看完整 Spec (GitHub)</a>
-            `);
-            addTimeline('Bot: 生成技术规范文档');
-
-            // Step 3: Review
-            currentStep = 2;
-            updateWorkflowStep(2, 'active');
-            await sleep(2500);
-            addMessage('看起来不错，开始开发', 'user');
-            addTimeline('用户: 批准技术规范');
-
-            // Step 4: 并行开发
-            currentStep = 3;
-            updateWorkflowStep(3, 'active');
-            await sleep(1500);
-            showTyping();
-            await sleep(2000);
-            hideTyping();
-            addMessage('🚀 开始开发 JIRA-1234...<br>预计需要 25 分钟<br><br>你可以同时启动其他任务！');
-            addTimeline('Bot: 开始编码');
-
-            await sleep(2000);
-            addMessage('好的，我去开会，你继续', 'user');
-            addTimeline('用户: 离开进行其他工作');
-
-            await sleep(3000);
-            addMessage('📊 开发进度: 40%<br>已完成前端登录组件重构', 'system');
-
-            // Step 5: 代码审查
-            currentStep = 4;
-            updateWorkflowStep(4, 'active');
-            await sleep(4000);
-            showTyping();
-            await sleep(2500);
-            hideTyping();
-            addMessage(`
-                ✨ JIRA-1234 开发完成！<br><br>
-                已通过自动 Code Review:<br>
-                ✅ 代码风格检查<br>
-                ✅ 单元测试覆盖率 87%<br>
-                ✅ 无安全漏洞<br><br>
-                <a href="#" class="link-button" onclick="return false;">📎 查看 Pull Request</a>
-            `);
-            addTimeline('Bot: 开发完成，自动代码审查');
-
-            await sleep(2500);
-            addMessage('审核通过，开始测试', 'user');
-            addTimeline('用户: 批准代码');
-
-            // Step 6: 部署测试环境
-            currentStep = 5;
-            updateWorkflowStep(5, 'active');
-            await sleep(2000);
-            showTyping();
-            await sleep(2500);
-            hideTyping();
-            addMessage('🔧 正在部署测试环境...<br><br>✅ 测试环境已就绪<br>URL: https://test-env-1234.staging.com<br><br>已通知测试人员 @小B');
-            addTimeline('Bot: 部署测试环境');
-
-            // Step 7: 测试
-            currentStep = 6;
-            updateWorkflowStep(6, 'active');
-            await sleep(3000);
-            addMessage('[@小B] 收到测试任务 JIRA-1234', 'system');
-            addTimeline('测试人员 B: 收到通知');
-
-            await sleep(2000);
-            addMessage('[测试人员] 测试用例看起来完整，开始自动化测试', 'user');
-            addTimeline('测试人员 B: 批准测试计划');
-
-            await sleep(3000);
-            showTyping();
-            await sleep(2500);
-            hideTyping();
-            addMessage(`
-                ✅ 自动化测试完成！<br><br>
-                测试结果:<br>
-                • 功能测试: 18/18 通过<br>
-                • 性能测试: 登录响应时间 &lt; 200ms<br>
-                • 兼容性: Chrome/Safari/Firefox 全部通过<br><br>
-                已通知 @小B
-            `);
-            addTimeline('Bot: 自动化测试完成');
-
-            // Step 8: 发布
-            currentStep = 7;
-            updateWorkflowStep(7, 'active');
-            await sleep(2000);
-            addMessage('[@小C] JIRA-1234 已通过测试，准备发布', 'system');
-            addTimeline('发布人员 C: 收到发布通知');
-
-            await sleep(2500);
-            addMessage('[发布人员] 开始发布', 'user');
-            addTimeline('发布人员 C: 开始发布流程');
-
-            await sleep(3000);
-            showTyping();
-            await sleep(2500);
-            hideTyping();
-            addMessage(`
-                🎉 发布成功！<br><br>
-                JIRA-1234 已部署到生产环境<br>
-                版本: v1.2.3<br>
-                发布时间: ${new Date().toLocaleString('zh-CN')}<br><br>
-                <strong>完整流程耗时: 约 35 分钟</strong>
-            `);
-            addTimeline('✅ 发布完成 - 流程结束');
-
-            await sleep(2000);
-            updateWorkflowStep(8, 'completed');
-            demoRunning = false;
+            timeline.scrollTop = timeline.scrollHeight;
         }
 
         function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function runWorkflow() {
+            // 初始化：展示三个待办任务
+            addTimeline('dev', '登录查看今日任务');
+            
+            addTask('dev', `
+                <div class="task-title">JIRA-1234: 用户登录优化</div>
+                <div class="task-desc">优化登录流程，提升用户体验</div>
+                <span class="task-status status-pending">待开始</span>
+            `, 'pending');
+
+            addTask('dev', `
+                <div class="task-title">JIRA-1235: 支付接口对接</div>
+                <div class="task-desc">对接新的支付网关</div>
+                <span class="task-status status-pending">待开始</span>
+            `, 'pending');
+
+            addTask('dev', `
+                <div class="task-title">JIRA-1236: Dashboard 性能优化</div>
+                <div class="task-desc">减少首页加载时间</div>
+                <span class="task-status status-pending">待开始</span>
+            `, 'pending');
+
+            await sleep(2000);
+
+            // 开发者A 开始第一个任务
+            addTimeline('dev', '选择 JIRA-1234，要求 Bot 生成技术规范');
+            await sleep(1500);
+
+            updateTask('dev', 0, `
+                <div class="task-title">JIRA-1234: 用户登录优化</div>
+                <div class="task-desc">Bot 正在生成技术规范...</div>
+                <span class="task-status status-inprogress">进行中</span>
+            `, 'inprogress');
+
+            addTimeline('bot', '拉取代码分支 feature/JIRA-1234');
+            await sleep(2000);
+            addTimeline('bot', '生成技术规范文档（Spec）');
+            await sleep(2500);
+
+            updateTask('dev', 0, `
+                <div class="task-title">JIRA-1234: 用户登录优化</div>
+                <div class="task-desc">✅ 技术规范已生成，等待Review</div>
+                <span class="task-status status-inprogress">等待审核</span>
+            `, 'inprogress');
+
+            await sleep(1500);
+            addTimeline('dev', '审核技术规范，批准开始开发');
+            await sleep(1000);
+
+            updateTask('dev', 0, `
+                <div class="task-title">JIRA-1234: 用户登录优化</div>
+                <div class="task-desc">🤖 Bot 正在编码... (25分钟)</div>
+                <span class="task-status status-inprogress">开发中</span>
+            `, 'inprogress');
+
+            addTimeline('bot', '开始开发 JIRA-1234');
+
+            // 并行：开发者A 同时启动第二个任务
+            await sleep(2000);
+            addTimeline('dev', '同时启动 JIRA-1235（支付接口）');
+            await sleep(1000);
+
+            updateTask('dev', 1, `
+                <div class="task-title">JIRA-1235: 支付接口对接</div>
+                <div class="task-desc">Bot 正在生成技术规范...</div>
+                <span class="task-status status-inprogress">进行中</span>
+            `, 'inprogress');
+
+            addTimeline('bot', '并行生成 JIRA-1235 技术规范');
+            await sleep(2500);
+
+            updateTask('dev', 1, `
+                <div class="task-title">JIRA-1235: 支付接口对接</div>
+                <div class="task-desc">✅ 技术规范已生成</div>
+                <span class="task-status status-inprogress">等待审核</span>
+            `, 'inprogress');
+
+            await sleep(1500);
+            addTimeline('dev', '批准 JIRA-1235，Bot 开始并行开发');
+
+            updateTask('dev', 1, `
+                <div class="task-title">JIRA-1235: 支付接口对接</div>
+                <div class="task-desc">🤖 Bot 正在编码... (30分钟)</div>
+                <span class="task-status status-inprogress">开发中</span>
+            `, 'inprogress');
+
+            addTimeline('bot', '并行开发 JIRA-1235');
+
+            // 第一个任务完成
+            await sleep(3000);
+            addTimeline('bot', 'JIRA-1234 开发完成，自动代码审查');
+
+            updateTask('dev', 0, `
+                <div class="task-title">JIRA-1234: 用户登录优化</div>
+                <div class="task-desc">✅ 开发完成，Code Review通过</div>
+                <span class="task-status status-completed">已完成开发</span>
+            `, 'completed');
+
+            await sleep(1500);
+            addTimeline('dev', '审核 JIRA-1234 代码，批准进入测试');
+            await sleep(1000);
+
+            // 自动创建测试环境，通知测试工程师B
+            addTimeline('bot', '创建 JIRA-1234 测试环境');
+            await sleep(1500);
+
+            addTask('test', `
+                <div class="task-title">测试任务: JIRA-1234</div>
+                <div class="task-desc">✅ 测试环境已就绪<br>URL: https://test-1234.staging.com</div>
+                <span class="task-status status-pending">待测试</span>
+            `, 'pending');
+
+            addTimeline('test', '收到 JIRA-1234 测试任务');
+            await sleep(2000);
+
+            updateTask('test', 0, `
+                <div class="task-title">测试任务: JIRA-1234</div>
+                <div class="task-desc">审核测试用例，批准自动化测试</div>
+                <span class="task-status status-inprogress">测试中</span>
+            `, 'inprogress');
+
+            addTimeline('test', '审核测试用例，启动自动化测试');
+            await sleep(2500);
+            addTimeline('bot', '执行 JIRA-1234 自动化测试');
+            await sleep(2500);
+
+            updateTask('test', 0, `
+                <div class="task-title">测试任务: JIRA-1234</div>
+                <div class="task-desc">✅ 测试通过 (18/18 cases)<br>性能: 登录响应 < 200ms</div>
+                <span class="task-status status-completed">测试完成</span>
+            `, 'completed');
+
+            addTimeline('test', 'JIRA-1234 测试完成，通知发布');
+
+            // 通知发布人员C
+            await sleep(1500);
+            addTask('deploy', `
+                <div class="task-title">发布任务: JIRA-1234</div>
+                <div class="task-desc">✅ 已通过测试，准备发布到生产环境</div>
+                <span class="task-status status-pending">待发布</span>
+            `, 'pending');
+
+            addTimeline('deploy', '收到 JIRA-1234 发布任务');
+            await sleep(2000);
+
+            updateTask('deploy', 0, `
+                <div class="task-title">发布任务: JIRA-1234</div>
+                <div class="task-desc">正在发布到生产环境...</div>
+                <span class="task-status status-inprogress">发布中</span>
+            `, 'inprogress');
+
+            addTimeline('deploy', '开始发布 JIRA-1234');
+            await sleep(3000);
+
+            updateTask('deploy', 0, `
+                <div class="task-title">发布任务: JIRA-1234</div>
+                <div class="task-desc">🎉 发布成功！版本 v1.2.3</div>
+                <span class="task-status status-completed">已发布</span>
+            `, 'completed');
+
+            addTimeline('deploy', '✅ JIRA-1234 发布成功');
+
+            // 第二个任务也完成
+            await sleep(2000);
+            addTimeline('bot', 'JIRA-1235 开发完成，自动代码审查');
+
+            updateTask('dev', 1, `
+                <div class="task-title">JIRA-1235: 支付接口对接</div>
+                <div class="task-desc">✅ 开发完成，Code Review通过</div>
+                <span class="task-status status-completed">已完成开发</span>
+            `, 'completed');
+
+            await sleep(1500);
+            addTimeline('bot', '创建 JIRA-1235 测试环境');
+            await sleep(1500);
+
+            addTask('test', `
+                <div class="task-title">测试任务: JIRA-1235</div>
+                <div class="task-desc">✅ 测试环境已就绪</div>
+                <span class="task-status status-pending">待测试</span>
+            `, 'pending');
+
+            addTimeline('test', '收到 JIRA-1235 测试任务');
+            await sleep(2000);
+
+            updateTask('test', 1, `
+                <div class="task-title">测试任务: JIRA-1235</div>
+                <div class="task-desc">🤖 自动化测试进行中...</div>
+                <span class="task-status status-inprogress">测试中</span>
+            `, 'inprogress');
+
+            addTimeline('bot', '执行 JIRA-1235 自动化测试');
+            await sleep(2500);
+
+            updateTask('test', 1, `
+                <div class="task-title">测试任务: JIRA-1235</div>
+                <div class="task-desc">✅ 测试通过 (25/25 cases)</div>
+                <span class="task-status status-completed">测试完成</span>
+            `, 'completed');
+
+            addTimeline('test', 'JIRA-1235 测试完成');
+
+            await sleep(1500);
+            addTask('deploy', `
+                <div class="task-title">发布任务: JIRA-1235</div>
+                <div class="task-desc">✅ 准备发布</div>
+                <span class="task-status status-pending">待发布</span>
+            `, 'pending');
+
+            addTimeline('deploy', '收到 JIRA-1235 发布任务');
+            await sleep(2000);
+
+            updateTask('deploy', 1, `
+                <div class="task-title">发布任务: JIRA-1235</div>
+                <div class="task-desc">正在发布...</div>
+                <span class="task-status status-inprogress">发布中</span>
+            `, 'inprogress');
+
+            addTimeline('deploy', '开始发布 JIRA-1235');
+            await sleep(3000);
+
+            updateTask('deploy', 1, `
+                <div class="task-title">发布任务: JIRA-1235</div>
+                <div class="task-desc">🎉 发布成功！</div>
+                <span class="task-status status-completed">已发布</span>
+            `, 'completed');
+
+            addTimeline('deploy', '✅ JIRA-1235 发布成功');
+
+            await sleep(1500);
+            addTimeline('bot', '🎉 所有任务完成！共处理 2 个并行任务');
+
+            demoRunning = false;
         }
 
         function startDemo() {
@@ -695,15 +562,6 @@
         function resetDemo() {
             location.reload();
         }
-
-        function sendMessage() {
-            // 演示模式下禁用手动输入
-        }
-
-        // 初始化
-        window.addEventListener('load', () => {
-            addMessage('👋 欢迎使用 AI Dev Assistant！<br>点击右侧 <strong>开始演示</strong> 查看完整开发流程。');
-        });
     </script>
 </body>
 </html>
